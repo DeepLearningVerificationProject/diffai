@@ -205,7 +205,7 @@ parser.add_argument('--write-first', type=h.str2bool, nargs='?', const=True, def
 parser.add_argument('--test-size', type=int, default=2000, help='number of examples to test with')
 
 parser.add_argument('-r', '--regularize', type=float, default=None, help='use regularization')
-
+parser.add_argument('--activation', type=str, default='ReLU', help='Activation function')
 
 args = parser.parse_args()
 
@@ -457,7 +457,7 @@ def createModel(net, domain, domain_name):
 
     return model
 
-out_dir = os.path.join(args.out, args.dataset, str(args.net)[1:-1].replace(", ","_").replace("'",""),
+out_dir = os.path.join(args.out, args.dataset, str(args.net)[1:-1].replace(", ","_").replace("'",""), args.activation,
                        args.spec, "width_"+str(args.width), h.file_timestamp() )
 
 print("Saving to:", out_dir)
@@ -471,8 +471,8 @@ with h.mopen(args.dont_write, os.path.join(out_dir, "config.txt"), "w") as f:
         h.printBoth("\t"+k+": "+str(getattr(args,k)), f = f)
 print("")
 
-def buildNet(n):
-    n = n(num_classes)
+def buildNet(n, **kwargs):
+    n = n(num_classes, **kwargs)
     if args.normalize_layer:
         if args.dataset in ["MNIST"]:
             n = Seq(Normalize([0.1307], [0.3081] ), n)
@@ -523,9 +523,9 @@ else:
 
 for n in args.net:
     m = getattr(models,n)
-    net_create = (lambda m: lambda: buildNet(m))(m) # why doesn't python do scoping right?  This is a thunk.  It is bad.
+    net_create = (lambda m: lambda: buildNet(m, activation=args.activation))(m) # why doesn't python do scoping right?  This is a thunk.  It is bad.
     net_create.__name__ = n
-    net = buildNet(m)
+    net = buildNet(m, activation=args.activation)
     net.__name__ = n
     nets += [ (net, net_create) ]
 
